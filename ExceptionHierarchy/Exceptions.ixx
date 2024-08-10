@@ -13,10 +13,10 @@ namespace xk
 	constexpr bool IsError = false;
 
 	export template<class Ty>
-	concept From = IsFrom<Ty> && std::is_class_v<Ty>;
+	concept From = IsFrom<Ty> && !IsError<Ty> && std::is_class_v<Ty>;
 
 	export template<class Ty>
-	concept Error = IsError<Ty> && std::is_class_v<Ty>;
+	concept Error = IsError<Ty> && !IsFrom<Ty> && std::is_class_v<Ty>;
 
 	export template<class... Ty>
 		requires (std::is_class_v<Ty> && ...)
@@ -30,80 +30,8 @@ namespace xk
 	template<>
 	constexpr bool IsError<UnknownException> = true;
 
-	export template<class... Ty>
-	class ExceptionInterface;
-
-	template<class Ty>
-	class ExceptionInterface<Ty>
-	{
-
-	};
-
-	template<From F, Error E>
-	class ExceptionInterface<F, E> :
-		public virtual ExceptionInterface<F>,
-		public virtual ExceptionInterface<E>
-	{
-
-	};
-
-	template<From F, class Ty>
-	class ExceptionInterface<F, Ty> :
-		public virtual ExceptionInterface<F>,
-		public virtual ExceptionInterface<Ty>
-	{
-
-	};
-
-	template<Error E, class Ty>
-	class ExceptionInterface<E, Ty> :
-		public virtual ExceptionInterface<E>,
-		public virtual ExceptionInterface<Ty>
-	{
-
-	};
-
-	template<class Ty>
-	class ExceptionImpl<Ty> : 
-		public virtual Exception<UnknownException>,
-		public virtual ExceptionInterface<Ty>
-	{
-
-	};
-
-	template<From F, Error E>
-	class ExceptionImpl<F, E> : 
-		public virtual ExceptionImpl<F>, 
-		public virtual ExceptionImpl<E>,
-		public ExceptionImpl<F, UnknownException>,
-		public ExceptionInterface<F, E>
-	{
-
-	};
-
-	template<From F, class Ty>
-	class ExceptionImpl<F, Ty> :
-		public virtual ExceptionImpl<F>,
-		public virtual ExceptionImpl<Ty>,
-		public ExceptionInterface<F, Ty>
-	{
-
-	};
-
-	template<Error E, class Ty>
-	class ExceptionImpl<E, Ty> :
-		public virtual ExceptionImpl<E>,
-		public virtual ExceptionImpl<Ty>,
-		public ExceptionImpl<UnknownException, Ty>,
-		public ExceptionInterface<E, Ty>
-	{
-
-	};
-
-
 	template<>
-	class ExceptionImpl<UnknownException> :
-		public virtual ExceptionInterface<UnknownException>
+	class ExceptionImpl<UnknownException> 
 	{
 
 	};
@@ -111,26 +39,59 @@ namespace xk
 	template<From F>
 	class ExceptionImpl<F, UnknownException> :
 		public virtual ExceptionImpl<F>,
-		public virtual ExceptionImpl<UnknownException>,
-		public ExceptionInterface<F, UnknownException>
+		public virtual ExceptionImpl<UnknownException>
 	{
 
 	};
 
 	template<class Ty>
-	class ExceptionImpl<UnknownException, Ty> :
-		public virtual ExceptionImpl<UnknownException>,
-		public virtual ExceptionImpl<Ty>,
-		public ExceptionInterface<UnknownException, Ty>
+	class ExceptionImpl<UnknownException, Ty>
+	{
+	private:
+		ExceptionImpl() = delete;
+	};
+
+	template<class Ty>
+	class ExceptionImpl<Ty> : 
+		public virtual ExceptionImpl<UnknownException>
+	{
+
+	};
+
+
+	template<From F, Error E>
+	class ExceptionImpl<F, E> : 
+		public virtual ExceptionImpl<F>, 
+		public virtual ExceptionImpl<E>,
+		public ExceptionImpl<F, UnknownException>
+	{
+
+	};
+
+	template<From F, class Ty>
+		requires (!From<Ty> && !Error<Ty>)
+	class ExceptionImpl<F, Ty> :
+		public virtual ExceptionImpl<F>,
+		public virtual ExceptionImpl<Ty>
+	{
+
+	};
+
+	template<Error E, class Ty>
+		requires (!From<Ty> && !Error<Ty>)
+	class ExceptionImpl<E, Ty> :
+		public virtual ExceptionImpl<E>,
+		public virtual ExceptionImpl<Ty>
 	{
 
 	};
 
 	template<From F, Error E, class... Ty>
+		requires ((!From<Ty> && !Error<Ty>) && ...)
 	class ExceptionImpl<F, E, Ty...> :
 		public ExceptionImpl<F, E>,
 		public ExceptionImpl<F, Ty>..., 
-		public ExceptionImpl<E, Ty>...,
+		public ExceptionImpl<E, Ty>...
 	{
 
 	};
@@ -173,6 +134,35 @@ namespace xk
 		}
 	}
 
+	export template<class Ty, class Invocable, class Invocable2>
+		requires std::is_invocable_r_v<Ty, Invocable>
+	Ty ConvertTo(Invocable i, Invocable2 i2)
+	{
+		try
+		{
+			return i();
+		}
+		catch(...)
+		{
+			throw i2();
+		}
+	}
+
+	export template<class Exception, class Ty, class Invocable, std::invocable<Exception> Invocable2>
+		requires std::is_invocable_r_v<Ty, Invocable>
+	Ty ConvertTo(Invocable i, Invocable2 i2)
+	{
+		try
+		{
+			return i();
+		}
+		catch(const Exception& e)
+		{
+			throw i2(e);
+		}
+	}
+
+
 	class Test
 	{
 	};
@@ -202,7 +192,6 @@ namespace xk
 
 		Exception<Test, bafa>& e5 = f;
 		Exception<TestE, bafa>& e6 = f;
-		Exception<UnknownException, bafa>& e7 = f;
 		bafa s;
 	}
 }
