@@ -2,7 +2,7 @@ module;
 
 #include <concepts>
 
-export module Exceptions;
+export module xk.Exceptions;
 
 namespace xk
 {
@@ -35,14 +35,36 @@ namespace xk
 		public virtual ExceptionImpl<F>,
 		public virtual ExceptionImpl<UnknownException>
 	{
+	public:
+		ExceptionImpl() = default;
 
+		template<class... Params>
+		ExceptionImpl(Params&&... params) :
+			ExceptionImpl<F>{ std::forward<Params>(params)... }
+		{
+
+		}
+		ExceptionImpl(ExceptionImpl<F> f) :
+			ExceptionImpl<F>{ f }
+		{
+
+		}
 	};
 
-	template<class Ty>
-	class ExceptionImpl<UnknownException, Ty>
+	template<ExceptionModule F, class... Ty>
+		requires ((!ExceptionModule<Ty> && !Error<Ty>) && ...)
+	class ExceptionImpl<F, UnknownException, Ty...> :
+		public ExceptionImpl<F, UnknownException>,
+		public ExceptionImpl<F, Ty>...
 	{
-	private:
-		ExceptionImpl() = delete;
+	public:
+		ExceptionImpl() = default;
+		ExceptionImpl(ExceptionImpl<F> f, ExceptionImpl<Ty>... t) :
+			ExceptionImpl<F>{ f },
+			ExceptionImpl<Ty>{ t }...
+		{
+
+		}
 	};
 
 	template<class Ty>
@@ -59,7 +81,26 @@ namespace xk
 		public virtual ExceptionImpl<E>,
 		public ExceptionImpl<F, UnknownException>
 	{
+	public:
+		ExceptionImpl() = default;
+		ExceptionImpl(ExceptionImpl<F> f) :
+			ExceptionImpl<F>{ f }
+		{
 
+		}
+
+		ExceptionImpl(ExceptionImpl<E> e) :
+			ExceptionImpl<E>{ e }
+		{
+
+		}
+
+		ExceptionImpl(ExceptionImpl<F> f, ExceptionImpl<E> e) :
+			ExceptionImpl<F>{ f },
+			ExceptionImpl<E>{ e }
+		{
+
+		}
 	};
 
 	template<ExceptionModule F, class Ty>
@@ -69,15 +110,54 @@ namespace xk
 		public virtual ExceptionImpl<Ty>
 	{
 
+	public:
+		ExceptionImpl() = default;
+		ExceptionImpl(ExceptionImpl<F> f) :
+			ExceptionImpl<F>{ f }
+		{
+
+		}
+
+		ExceptionImpl(ExceptionImpl<Ty> t) :
+			ExceptionImpl<Ty>{ t }
+		{
+
+		}
+
+		ExceptionImpl(ExceptionImpl<F> f, ExceptionImpl<Ty> t) :
+			ExceptionImpl<F>{ f },
+			ExceptionImpl<Ty>{ t }
+		{
+
+		}
 	};
 
 	template<Error E, class Ty>
-		requires (!ExceptionModule<Ty> && !Error<Ty>)
+		requires (!ExceptionModule<Ty> && !Error<Ty> && !std::same_as<E, UnknownException>)
 	class ExceptionImpl<E, Ty> :
 		public virtual ExceptionImpl<E>,
 		public virtual ExceptionImpl<Ty>
 	{
+	public:
+		ExceptionImpl() = default;
+		ExceptionImpl(ExceptionImpl<E> e) :
+			ExceptionImpl<E>{ e }
+		{
 
+		}
+
+		ExceptionImpl(ExceptionImpl<Ty> t) :
+			ExceptionImpl<Ty>{ t }
+		{
+
+		}
+
+		ExceptionImpl(ExceptionImpl<E> e, ExceptionImpl<Ty> t) :
+			ExceptionImpl<E>{ e },
+			ExceptionImpl<Ty>{ t }
+		{
+
+		}
 	};
 
 	template<ExceptionModule F, Error E, class... Ty>
@@ -86,16 +166,6 @@ namespace xk
 		public ExceptionImpl<F, E>,
 		public ExceptionImpl<F, Ty>..., 
 		public ExceptionImpl<E, Ty>...
-	{
-
-	};
-
-
-	template<ExceptionModule F, class... Ty>
-		requires ((!ExceptionModule<Ty> && !Error<Ty>) && ...)
-	class ExceptionImpl<F, UnknownException, Ty...> :
-		public ExceptionImpl<F, UnknownException>,
-		public ExceptionImpl<F, Ty>...
 	{
 
 	};
