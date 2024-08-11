@@ -2,33 +2,27 @@ module;
 
 #include <concepts>
 
-export module xk.Exceptions;
+export module Exceptions;
 
 namespace xk
 {
-	export template<class Ty>
-	constexpr bool IsFrom = false;
+	export struct ExceptionModuleTag {};
+	export struct ErrorTag {};
 
 	export template<class Ty>
-	constexpr bool IsError = false;
+	concept ExceptionModule = std::same_as<typename Ty::exception_tag, ExceptionModuleTag>;
 
 	export template<class Ty>
-	concept From = IsFrom<Ty> && !IsError<Ty> && std::is_class_v<Ty>;
-
-	export template<class Ty>
-	concept Error = IsError<Ty> && !IsFrom<Ty> && std::is_class_v<Ty>;
+	concept Error = std::same_as<typename Ty::exception_tag, ErrorTag>;
 
 	export template<class... Ty>
-		requires (std::is_class_v<Ty> && ...)
 	class ExceptionImpl;
 
 	export class UnknownException
 	{
-
+	public:
+		using exception_tag = ErrorTag;
 	};
-
-	template<>
-	constexpr bool IsError<UnknownException> = true;
 
 	template<>
 	class ExceptionImpl<UnknownException> 
@@ -36,7 +30,7 @@ namespace xk
 
 	};
 
-	template<From F>
+	template<ExceptionModule F>
 	class ExceptionImpl<F, UnknownException> :
 		public virtual ExceptionImpl<F>,
 		public virtual ExceptionImpl<UnknownException>
@@ -59,7 +53,7 @@ namespace xk
 	};
 
 
-	template<From F, Error E>
+	template<ExceptionModule F, Error E>
 	class ExceptionImpl<F, E> : 
 		public virtual ExceptionImpl<F>, 
 		public virtual ExceptionImpl<E>,
@@ -68,8 +62,8 @@ namespace xk
 
 	};
 
-	template<From F, class Ty>
-		requires (!From<Ty> && !Error<Ty>)
+	template<ExceptionModule F, class Ty>
+		requires (!ExceptionModule<Ty> && !Error<Ty>)
 	class ExceptionImpl<F, Ty> :
 		public virtual ExceptionImpl<F>,
 		public virtual ExceptionImpl<Ty>
@@ -78,7 +72,7 @@ namespace xk
 	};
 
 	template<Error E, class Ty>
-		requires (!From<Ty> && !Error<Ty>)
+		requires (!ExceptionModule<Ty> && !Error<Ty>)
 	class ExceptionImpl<E, Ty> :
 		public virtual ExceptionImpl<E>,
 		public virtual ExceptionImpl<Ty>
@@ -86,8 +80,8 @@ namespace xk
 
 	};
 
-	template<From F, Error E, class... Ty>
-		requires ((!From<Ty> && !Error<Ty>) && ...)
+	template<ExceptionModule F, Error E, class... Ty>
+		requires ((!ExceptionModule<Ty> && !Error<Ty>) && ...)
 	class ExceptionImpl<F, E, Ty...> :
 		public ExceptionImpl<F, E>,
 		public ExceptionImpl<F, Ty>..., 
@@ -96,6 +90,18 @@ namespace xk
 
 	};
 
+
+	template<ExceptionModule F, class... Ty>
+		requires ((!ExceptionModule<Ty> && !Error<Ty>) && ...)
+	class ExceptionImpl<F, UnknownException, Ty...> :
+		public ExceptionImpl<F, UnknownException>,
+		public ExceptionImpl<F, Ty>...
+	{
+
+	};
+
+	//Used to allow re-arranging arguments to mean the exact same thing
+	//Requires specializing
 	export template<class... Ty>
 	struct ExceptionAliasMap
 	{
@@ -163,35 +169,4 @@ namespace xk
 	}
 
 
-	class Test
-	{
-	};
-	class TestE
-	{
-	};
-
-	template<>
-	constexpr bool IsFrom<Test> = true;
-
-	template<>
-	constexpr bool IsError<TestE> = true;
-
-	struct bafa
-	{
-		int a;
-	};
-
-	
-	void Foo()
-	{
-		ExceptionImpl<Test, TestE, bafa> f;
-		Exception<Test>& e = f;
-		Exception<TestE>& e2 = f;
-		Exception<Test, UnknownException>& e3 = f;
-		Exception<UnknownException>& e4 = f;
-
-		Exception<Test, bafa>& e5 = f;
-		Exception<TestE, bafa>& e6 = f;
-		bafa s;
-	}
 }
