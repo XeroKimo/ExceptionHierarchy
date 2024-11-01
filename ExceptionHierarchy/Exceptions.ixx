@@ -51,28 +51,20 @@ namespace xk
 	export class UnknownException
 	{
 	public:
-		using exception_tag = ErrorTag;
-	};
-
-	template<>
-	class ExceptionImpl<UnknownException> 
-	{
-
-	public:
 		virtual std::string_view What() const noexcept { return ""; }
 		virtual std::string FullWhat() const noexcept { return std::string{ What() }; }
 	};
 
 	template<ErrorModule F>
 	class ExceptionImpl<F> :
-		public virtual ExceptionImpl<UnknownException>
+		public virtual UnknownException
 	{
 		[[msvc::no_unique_address]] ExceptionData<F> data;
 	public:
 		ExceptionImpl() = default;
 
 		ExceptionImpl(ExceptionData<F> data) :
-			data{ std::move(data)... }
+			data{ std::move(data) }
 		{
 
 		}
@@ -85,14 +77,14 @@ namespace xk
 
 	template<Error E>
 	class ExceptionImpl<E> :
-		public virtual ExceptionImpl<UnknownException>
+		public virtual UnknownException
 	{
 		[[msvc::no_unique_address]] ExceptionData<E> data;
 	public:
 		ExceptionImpl() = default;
 
 		ExceptionImpl(ExceptionData<E> data) :
-			data{ std::move(data)... }
+			data{ std::move(data) }
 		{
 
 		}
@@ -105,14 +97,14 @@ namespace xk
 
 	template<ErrorCategory C>
 	class ExceptionImpl<C> :
-		public virtual ExceptionImpl<UnknownException>
+		public virtual UnknownException
 	{
 		[[msvc::no_unique_address]] ExceptionData<C> data;
 	public:
 		ExceptionImpl() = default;
 
 		ExceptionImpl(ExceptionData<C> data) :
-			data{ std::move(data)... }
+			data{ std::move(data) }
 		{
 
 		}
@@ -134,7 +126,7 @@ namespace xk
 		ExceptionImpl() = default;
 
 		ExceptionImpl(ExceptionData<F, E> data) :
-			data{ std::move(data)... }
+			data{ std::move(data) }
 		{
 
 		}
@@ -142,7 +134,7 @@ namespace xk
 		ExceptionImpl(ExceptionData<F> data0, ExceptionData<E> data1, ExceptionData<F, E> data) :
 			ExceptionImpl<F>{ std::move(data0) },
 			ExceptionImpl<E>{ std::move(data1) },
-			data{ std::move(data)... }
+			data{ std::move(data) }
 		{
 
 		}
@@ -163,7 +155,7 @@ namespace xk
 		ExceptionImpl() = default;
 
 		ExceptionImpl(ExceptionData<F, C> data) :
-			data{ std::move(data)... }
+			data{ std::move(data) }
 		{
 
 		}
@@ -171,7 +163,7 @@ namespace xk
 		ExceptionImpl(ExceptionData<F> data0, ExceptionData<C> data1, ExceptionData<F, C> data) :
 			ExceptionImpl<F>{ std::move(data0) },
 			ExceptionImpl<C>{ std::move(data1) },
-			data{ std::move(data)... }
+			data{ std::move(data) }
 		{
 
 		}
@@ -191,7 +183,7 @@ namespace xk
 		ExceptionImpl() = default;
 
 		ExceptionImpl(ExceptionData<E, C> data) :
-			data{ std::move(data)... }
+			data{ std::move(data) }
 		{
 
 		}
@@ -199,7 +191,7 @@ namespace xk
 		ExceptionImpl(ExceptionData<E> data0, ExceptionData<C> data1, ExceptionData<E, C> data) :
 			ExceptionImpl<E>{ std::move(data0) },
 			ExceptionImpl<C>{ std::move(data1) },
-			data{ std::move(data)... }
+			data{ std::move(data) }
 		{
 
 		}
@@ -221,7 +213,7 @@ namespace xk
 		ExceptionImpl() = default;
 
 		ExceptionImpl(ExceptionData<F, E, C> data) :
-			data{ std::move(data)... }
+			data{ std::move(data) }
 		{
 
 		}
@@ -230,7 +222,7 @@ namespace xk
 			ExceptionImpl<F, E>{ std::move(data0) },
 			ExceptionImpl<F, C>{ std::move(data1) },
 			ExceptionImpl<E, C>{ std::move(data1) },
-			data{ std::move(data)... }
+			data{ std::move(data) }
 		{
 
 		}
@@ -242,7 +234,7 @@ namespace xk
 			ExceptionImpl<F, E>{ std::move(data3) },
 			ExceptionImpl<F, C>{ std::move(data4) },
 			ExceptionImpl<E, C>{ std::move(data5) },
-			data{ std::move(data)... }
+			data{ std::move(data) }
 		{
 
 		}
