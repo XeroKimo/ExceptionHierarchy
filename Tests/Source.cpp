@@ -7,7 +7,7 @@ using namespace xk;
 
 class TestModule
 {
-	using exception_tag = ExceptionModuleTag;
+	using exception_tag = ErrorModuleTag;
 };
 
 class TestError
@@ -15,8 +15,52 @@ class TestError
 	using exception_tag = ErrorTag;
 };
 
-struct TestCategory;
+struct TestCategory
+{
+	using exception_tag = ErrorCategoryTag;
+};
 
+template<>
+struct ExceptionData<TestModule>
+{
+	std::string_view What() const noexcept { return "Test Module"; }
+};
+
+template<>
+struct ExceptionData<TestError>
+{
+	std::string_view What() const noexcept { return "Test Error"; }
+};
+
+template<>
+struct ExceptionData<TestCategory>
+{
+	std::string_view What() const noexcept { return "Test Category"; }
+};
+
+template<>
+struct ExceptionData<TestModule, TestError>
+{
+	std::string_view What() const noexcept { return "Test Module + Error"; }
+};
+
+template<>
+struct ExceptionData<TestError, TestCategory>
+{
+	std::string_view What() const noexcept { return "Test Error + Category"; }
+};
+
+template<>
+struct ExceptionData<TestModule, TestCategory>
+{
+	std::string_view What() const noexcept { return "Test Module + Category"; }
+};
+
+template<>
+struct ExceptionData<TestModule, TestError, TestCategory>
+{
+	std::string_view What() const noexcept { return "Test Module + Error + Category"; }
+};
 
 int main()
 {
@@ -26,18 +70,13 @@ int main()
 	static_assert(std::convertible_to<Exception<TestModule, TestError, TestCategory>&, Exception<TestModule, TestError>&>);
 	static_assert(std::convertible_to<Exception<TestModule, TestError, TestCategory>&, Exception<TestModule, TestCategory>&>);
 	static_assert(std::convertible_to<Exception<TestModule, TestError, TestCategory>&, Exception<TestError, TestCategory>&>);
-	static_assert(std::convertible_to<Exception<TestModule, TestError, TestCategory>&, Exception<TestModule, UnknownException>&>);
-	static_assert(std::convertible_to<Exception<TestModule, TestError, TestCategory>&, Exception<UnknownException>&>);
 
+	Exception<TestModule, TestError, TestCategory> e;
+	Exception<UnknownException>& e2 = e;
+	std::cout << e2.FullWhat();
 
-	//Exception<TestModule>& e = f;
-	//Exception<TestError>& e2 = f;
-	//Exception<TestCategory>& e3 = f;
+	ExceptionData<TestModule, TestError, TestCategory> d = e.Data();
+	ExceptionData<TestModule, TestError> d2 = e.Exception<TestModule, TestError>::Data();
+	ExceptionData<TestModule> d3 = e.Exception<TestModule>::Data();
 
-	//Exception<TestModule, TestError>& e4 = f;
-	//Exception<TestModule, TestCategory>& e5 = f;
-	//Exception<TestError, TestCategory>& e6 = f;
-
-	//Exception<TestModule, UnknownException>& e7 = f;
-	//Exception<UnknownException>& e8 = f;
 }
